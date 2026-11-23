@@ -30,8 +30,8 @@
 
 ### RN02: Duplicidade de nome
 
-- **Regra:** Não permitir o cadastro de dois autores com o mesmo nome.
-- **Resultado esperado:** 400 Bad Request.
+- **Regra:** Não permitir o cadastro de autores com nomes duplicados. Para verificar a duplicidade, a comparação deverá desconsiderar diferenças entre letras maiúsculas e minúsculas, remover espaços no início e no final e reduzir sequências de espaços internos a um único espaço. A comparação deverá preservar os acentos, de modo que nomes com grafias diferentes pela presença ou ausência de acentos sejam considerados distintos.
+- **Resultado esperado:** A API deve rejeitar o cadastro de um autor cujo nome, após a normalização para comparação, já esteja cadastrado, retornando HTTP 400 Bad Request.
 - **Endpoint:** POST /authors.
 - **Origem:** Decisão.
 - **Situação:** Confirmada.
@@ -42,7 +42,7 @@
 
 - **Regra:** Ao consultar autor por ID inexistente, a API deve informar que o recurso não foi encontrado.
 - **Resultado esperado:** 404 Not Found.
-- **Endpoint:** get /authors /:id.
+- **Endpoint:** GET /authors/:id.
 - **Origem:** Decisão (o README não especifica o comportamento).
 - **Situação:** Confirmada.
 - **Prioridade:** Média.
@@ -78,6 +78,16 @@
 - **Prioridade:** Média.
 - **Técnica sugerida:** Partição de equivalência.
 
+### RN07: Exclusão de autor com livros associados
+
+- **Regra:** Não permitir a exclusão de um autor que possua livros associados.
+- **Resultado esperado:** A API deve rejeitar a exclusão do autor enquanto existirem livros associados a ele, retornando HTTP 409 Conflict.
+- **Endpoint:** DELETE /authors/:id
+- **Origem:** Banco + Decisão.
+- **Situação:** Confirmada.
+- **Prioridade:** Alta.
+- **Técnica sugerida:** Partição de equivalência.
+
 ## Módulo: Livros
 
 ### RN01: Autor obrigatório
@@ -92,8 +102,8 @@
 
 ### RN02: Campos obrigatórios do livro
 
-- **Regra:** title, genre e publication_year são obrigatórios. Valores vazios devem ser rejeitados.
-- **Resultado esperado:** HTTP 400 com mensagem de erro.
+- **Regra:** Os campos title, genre e publication_year são obrigatórios. Os campos textuais não podem estar ausentes, ser null, conter strings vazias ou apenas espaços. O campo publication_year não pode estar ausente, ser null, vazio, conter apenas espaços, apresentar valor não numérico ou ser menor ou igual a zero.
+- **Resultado esperado:** A API deve rejeitar o cadastro ou a atualização de um livro quando qualquer um dos campos obrigatórios não atender às condições estabelecidas, retornando HTTP 400 Bad Request.
 - **Endpoint:** POST /books, PUT /books/:id.
 - **Origem:** Decisão.
 - **Situação:** Confirmada.
@@ -140,22 +150,32 @@
 - **Prioridade:** Média.
 - **Técnica sugerida:** Partição de equivalência.
 
+### RN07: Exclusão de livro associado a bibliotecas
+
+- **Regra:** Não permitir a exclusão de um livro que esteja associado a uma ou mais bibliotecas.
+- **Resultado esperado:** A API deve rejeitar a exclusão do livro enquanto existirem associações com bibliotecas, retornando HTTP 409 Conflict.
+- **Endpoint:** DELETE /books/:id.
+- **Origem:** Banco + Decisão.
+- **Situação:** Confirmada.
+- **Prioridade:** Alta.
+- **Técnica sugerida:** Partição de equivalência.
+
 ## Módulo: Bibliotecas
 
 ### RN01: Local obrigatório
 
-- **Regra:** 'Local' é obrigatório. Vazio ou só espaço é rejeitado.
+- **Regra:** local é obrigatório. Vazio ou só espaço é rejeitado.
 - **Resultado esperado:** 400 Bad Request.
 - **Endpoint:** POST /libraries, PUT /libraries/:id.
-- **Origem:** Banco ou Decisão, conforme a implementação.
+- **Origem:** Banco + Decisão.
 - **Situação:** Confirmada.
 - **Prioridade:** Alta.
 - **Técnica sugerida:** Partição de equivalência.
 
 ### RN02: Duplicidade de local
 
-- **Regra:** Não permitir o cadastro de mais de uma biblioteca com o mesmo local.
-- **Resultado esperado:** 400 Bad Request.
+- **Regra:** Não permitir o cadastro de bibliotecas com locais duplicados. Para verificar a duplicidade, a comparação deverá desconsiderar diferenças entre letras maiúsculas e minúsculas, remover espaços no início e no final e reduzir sequências de espaços internos a um único espaço. A comparação deverá preservar os acentos, de modo que locais com grafias diferentes pela presença ou ausência de acentos sejam considerados distintos.
+- **Resultado esperado:** A API deve rejeitar o cadastro de uma biblioteca cujo local, após a normalização para comparação, já esteja cadastrado, retornando HTTP 400 Bad Request.
 - **Endpoint:** POST /libraries.
 - **Origem:** Decisão.
 - **Situação:** Confirmada.
@@ -216,8 +236,8 @@
 
 ### RN03: Quantidade positiva no cadastramento
 
-- **Regra:** As quantidades de exemplares totais e disponíveis devem ser maiores que zero.
-- **Resultado esperado:** 400 Bad Request.
+- **Regra:** total_copies deve ser maior que zero, e available_copies deve ser maior ou igual a zero.
+- **Resultado esperado:** A API deve rejeitar o cadastro quando total_copies for menor ou igual a zero, quando available_copies for negativo ou quando available_copies for maior que total_copies, retornando HTTP 400 Bad Request.
 - **Endpoint:** POST /library-books.
 - **Origem:** Decisão.
 - **Situação:** Confirmada.
@@ -226,8 +246,8 @@
 
 ### RN04: Quantidade positiva na atualização
 
-- **Regra:** As quantidades de exemplares totais e disponíveis devem ser maiores que zero durante a atualização de uma associação.
-- **Resultado esperado:** 400 Bad Request.
+- **Regra:** total_copies deve ser maior que zero, e available_copies deve ser maior ou igual a zero.
+- **Resultado esperado:** A API deve rejeitar a atualização quando total_copies for menor ou igual a zero, quando available_copies for negativo ou quando available_copies for maior que total_copies, retornando HTTP 400 Bad Request.
 - **Endpoint:** PUT /library-books/:library_id/:book_id.
 - **Origem:** Decisão.
 - **Situação:** Confirmada.
@@ -236,7 +256,7 @@
 
 ### RN05: Limite de disponibilidade
 
-- **Regra:** A quantidade de exemplares disponíveis não pode exceder a quantidade total de exemplares cadastrados.
+- **Regra:** available_copies não pode exceder total_copies cadastrados.
 - **Resultado esperado:** 400 Bad Request.
 - **Endpoint:** POST /library-books, PUT /library-books/:library_id/:book_id.
 - **Origem:** Decisão.
@@ -248,7 +268,7 @@
 
 - **Regra:** A associação entre livro e biblioteca deve existir para que possa ser excluída.
 - **Resultado esperado:** 404 Not Found.
-- **Endpoint:** DELETE /library-books/:library_id/:book_id
+- **Endpoint:** DELETE /libraries/:libraryId/books/:bookId.
 - **Origem:** Decisão
 - **Situação:** Confirmada.
 - **Prioridade:** Média.
@@ -259,9 +279,9 @@
 ### RN01: Valores padrão da paginação
 
 - **Regra:** Quando os parâmetros page e limit não forem informados, a API deverá utilizar os valores padrão page=1 e limit=20.
-- **Resultado esperado:** A listagem deverá retornar os primeiros 20 registros, respeitando a ordenação definida para o recurso.
+- **Resultado esperado:** A listagem deverá retornar os primeiros 20 registros, respeitando a ordenação padrão do recurso: name ASC para autores, title ASC para livros e local ASC para bibliotecas. Em caso de valores iguais no campo principal de ordenação, deverá ser utilizado id ASC como critério secundário.
 - **Endpoint:** GET /authors, GET /books e GET /libraries.
-- **Origem:** Código.
+- **Origem:** Decisão.
 - **Situação:** Confirmada.
 - **Prioridade:** Média.
 - **Técnica sugerida:** Partição de equivalência.
@@ -271,7 +291,7 @@
 - **Regra:** Quando os parâmetros page e limit forem informados, a API deverá utilizá-los para determinar a página e a quantidade máxima de registros retornados.
 - **Resultado esperado:** A API deverá retornar os registros correspondentes à página solicitada, respeitando o limite informado. Caso a última página possua menos registros que o limite, deverá retornar todos os registros disponíveis.
 - **Endpoint:** GET /authors, GET /books e GET /libraries.
-- **Origem:** Código.
+- **Origem:** Decisão.
 - **Situação:** Confirmada.
 - **Prioridade:** Alta.
 - **Técnica sugerida:** Partição de equivalência e valores-limite.
@@ -288,10 +308,13 @@
 
 ### RN04: Filtros de pesquisa textual
 
-- **Regra:** Os campos textuais disponíveis na listagem deverão permitir pesquisas parciais, sem diferenciação entre letras maiúsculas e minúsculas.
-- **Resultado esperado:** Ao informar parte de um texto, a API deverá retornar todos os registros que contenham o termo pesquisado no campo correspondente, independentemente da capitalização.
+- **Regra:** Os filtros textuais devem realizar buscas parciais e desconsiderar diferenças entre letras maiúsculas e minúsculas. Os campos que aceitam filtros textuais são:
+- Autores: name e nationality.
+- Livros: title e genre.
+- Bibliotecas: local.
+- **Resultado esperado:** A API deve retornar os registros que contenham o valor informado no respectivo campo, independentemente de diferenças entre letras maiúsculas e minúsculas.
 - **Endpoint:** GET /authors, GET /books e GET /libraries.
-- **Origem:** Código.
+- **Origem:** Decisão.
 - **Situação:** Confirmada.
 - **Prioridade:** Média.
 - **Técnica sugerida:** Partição de equivalência.
@@ -301,18 +324,19 @@
 - **Regra:** Os campos numéricos disponíveis na listagem deverão permitir pesquisas por correspondência exata.
 - **Resultado esperado:** Ao informar um ano de publicação, a API deverá retornar somente os livros cujo campo publication_year corresponda exatamente ao valor pesquisado.
 - **Endpoint:** GET /books.
-- **Origem:** Código.
+- **Origem:** Decisão.
 - **Situação:** Confirmada.
 - **Prioridade:** Média.
 - **Técnica sugerida:** Partição de equivalência.
 
 ### RN06: Ordenação dinâmica dos resultados
 
-- **Regra:** A API deverá permitir que o usuário escolha o campo e a direção da ordenação, respeitando os campos previamente autorizados para cada recurso.
-- **Resultado esperado:** A listagem deverá permitir ordenação crescente (ASC) ou decrescente (DESC) pelos seguintes campos:
+- **Regra:** A API deve permitir a ordenação dinâmica dos resultados por meio dos parâmetros sortBy e order. Os campos permitidos para ordenação são:
 - Authors: name, nationality.
 - Books: title, genre, publication_year.
 - Libraries: local.
+  O parâmetro sortBy define o campo utilizado na ordenação, enquanto order define a direção, aceitando ASC (crescente) ou DESC (decrescente).
+- **Resultado esperado:** A API deve retornar os registros ordenados conforme os parâmetros informados.
 - **Endpoint:** GET /authors, GET /books e GET /libraries.
 - **Origem:** Decisão.
 - **Situação:** Confirmada.
@@ -321,8 +345,10 @@
 
 ### RN07: Validação dos parâmetros de ordenação
 
-- **Regra:** A API deverá validar os campos e as direções informados nos parâmetros de ordenação.
-- **Resultado esperado:** Quando o usuário informar um campo não autorizado para o recurso ou uma direção diferente de ASC e DESC, a API deverá retornar HTTP 400 Bad Request.
+- **Regra:** A API deve validar os parâmetros de ordenação sortBy e order.
+- sortBy: deve aceitar somente os campos permitidos para ordenação em cada recurso.
+- order: deve aceitar somente ASC ou DESC, desconsiderando diferenças entre letras maiúsculas e minúsculas.
+- **Resultado esperado:** A API deve rejeitar parâmetros de ordenação inválidos, retornando HTTP 400 Bad Request.
 - **Endpoint:** GET /authors, GET /books e GET /libraries.
 - **Origem:** Decisão.
 - **Situação:** Confirmada.
@@ -334,17 +360,17 @@
 - **Regra:** A API deverá permitir a utilização de múltiplos filtros em uma mesma consulta, aplicando todos os critérios simultaneamente.
 - **Resultado esperado:** A listagem deverá retornar somente os registros que atendam a todos os filtros informados.
 - **Endpoint:** GET /authors, GET /books e GET /libraries.
-- **Origem:** Código.
+- **Origem:** Decisão.
 - **Situação:** Confirmada.
 - **Prioridade:** Alta.
 - **Técnica sugerida:** Partição de equivalência.
 
 ### RN09: Tratamento de filtros vazios
 
-- **Regra:** API deverá ignorar parâmetros de filtros textuais ou numéricos quando seus valores estiverem vazios.
-- **Resultado esperado:** A listagem deverá ser realizada sem aplicar o filtro vazio, mantendo os demais filtros informados, se houver.
+- **Regra:** A API deve ignorar filtros cujos valores não tenham conteúdo significativo, incluindo parâmetros não informados, strings vazias ("") ou strings contendo apenas espaços. Quando houver múltiplos filtros, os filtros vazios deverão ser ignorados, enquanto os demais deverão ser aplicados normalmente.
+- **Resultado esperado:** A API deve retornar os registros considerando apenas os filtros válidos e não vazios, sem rejeitar a requisição devido à presença de filtros vazios.
 - **Endpoint:** GET /authors, GET /books e GET /libraries.
-- **Origem:** Código.
+- **Origem:** Decisão.
 - **Situação:** Confirmada.
 - **Prioridade:** Baixa.
 - **Técnica sugerida:** Partição de equivalência.
@@ -371,7 +397,7 @@
 
 ## Regras com situação "Decidir"
 
-Lista rápida das regras pendentes, com a decisão tomada:
+Lista das regras que ainda dependem de definição ou decisão para serem consideradas concluídas:
 
 ### RN01: Filtro de livros pela nacionalidade dos autores relacionados
 
