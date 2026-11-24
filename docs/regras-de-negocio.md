@@ -2,7 +2,7 @@
 
 - **Sistema:** node-sequelize-library-api (tag `v1-para-teste`)
 - **Fonte das regras:** README, models/migrations e decisões minhas
-- **Última atualização:** 2026-11-19
+- **Última atualização:** 2026-11-24
 
 ## Como ler este documento
 
@@ -122,7 +122,7 @@
 
 ### LIV-RN02: Campos obrigatórios do livro
 
-- **Regra:** Os campos title, genre e publication_year são obrigatórios. Os campos textuais não podem estar ausentes, ser null, conter strings vazias ou apenas espaços. O campo publication_year não pode estar ausente, ser null, vazio, conter apenas espaços, apresentar valor não numérico ou ser menor ou igual a zero.
+- **Regra:** Os campos title, genre e publication_year são obrigatórios. Os campos textuais não podem estar ausentes, ser null, conter strings vazias ou apenas espaços. O campo publication_year não pode estar ausente, ser null, vazio, conter apenas espaços, apresentar valor não numérico, decimal ou menor ou igual a zero. Deve aceitar somente números inteiros positivos.
 - **Resultado esperado:** A API deve rejeitar o cadastro ou a atualização de um livro quando qualquer um dos campos obrigatórios não atender às condições estabelecidas, retornando HTTP 400 Bad Request.
 - **Endpoint:** POST /books, PUT /books/:id.
 - **Origem:** Decisão.
@@ -140,23 +140,23 @@
 - **Prioridade:** Média.
 - **Técnica sugerida:** Partição de equivalência.
 
-### LIV-RN04: Duplicidade de título de livro
+### LIV-RN04: Permissão de títulos duplicados
 
-- **Regra:** A definir se a API deve permitir o cadastro de livros com títulos já existentes.
-- **Resultado esperado:** A definir.
-- **Endpoint:** POST /books.
+- **Regra:** A API deve permitir que livros com títulos iguais sejam cadastrados ou atualizados, independentemente dos autores associados.
+- **Resultado esperado:** Livros com títulos duplicados devem ser cadastrados ou atualizados normalmente, desde que atendam às demais regras de validação.
+- **Endpoint:** POST /books, PUT /books/:id.
 - **Origem:** Decisão.
-- **Situação:** Decidir.
+- **Situação:** Confirmada.
 - **Prioridade:** Média.
 - **Técnica sugerida:** Partição de equivalência.
 
-### LIV-RN04: Atualização de livro por ID inexistente
+### LIV-RN05: Atualização de livro por ID inexistente
 
 - **Regra:** Ao atualizar um livro por ID inexistente, a API deve informar que o recurso não foi encontrado.
 - **Resultado esperado:** 404 Not Found.
 - **Endpoint:** PUT /books/:id.
 - **Origem:** Decisão.
-- **Situação:** Decidir.
+- **Situação:** Confirmada.
 - **Prioridade:** Média.
 - **Técnica sugerida:** Partição de equivalência.
 
@@ -226,7 +226,7 @@
 - **Resultado esperado:** A API deve retornar HTTP 400 Bad Request quando publication_year for maior que o ano corrente.
 - **Endpoint:** POST /books e PUT /books/:id.
 - **Origem:** Decisão.
-- **Situação:** Média.
+- **Situação:** Confirmada.
 - **Prioridade:** Alta.
 - **Técnica sugerida:** Partição de equivalência.
 
@@ -245,7 +245,7 @@
 ### BIB-RN02: Duplicidade de local
 
 - **Regra:** Não permitir o cadastro de bibliotecas com locais duplicados. Para verificar a duplicidade, a comparação deverá desconsiderar diferenças entre letras maiúsculas e minúsculas, remover espaços no início e no final e reduzir sequências de espaços internos a um único espaço. A comparação deverá preservar os acentos, de modo que locais com grafias diferentes pela presença ou ausência de acentos sejam considerados distintos.
-- **Resultado esperado:** A API deve rejeitar o cadastro de uma biblioteca cujo local, após a normalização para comparação, já esteja cadastrado, retornando HTTP 400 Bad Request.
+- **Resultado esperado:** a API deve rejeitar o cadastro de uma biblioteca cujo local já esteja cadastrado, retornando HTTP 409 Conflict.
 - **Endpoint:** POST /libraries.
 - **Origem:** Decisão.
 - **Situação:** Confirmada.
@@ -307,7 +307,7 @@
 - **Regra:** Permitir a exclusão de uma biblioteca mesmo que possua associações de estoque cadastradas. Ao excluir a biblioteca, todas as associações vinculadas a ela deverão ser removidas automaticamente.
 - **Resultado esperado:** A API deve excluir a biblioteca e suas respectivas associações de estoque, retornando HTTP 204 No Content.
 - **Endpoint:** DELETE /libraries/:id.
-- **Origem:** Decisão.
+- **Origem:** Banco + Decisão.
 - **Situação:** Confirmada.
 - **Prioridade:** Média.
 - **Técnica sugerida:** Partição de equivalência.
@@ -334,20 +334,20 @@
 - **Prioridade:** Média.
 - **Técnica sugerida:** Partição de equivalência.
 
-### EST-RN03: Quantidade positiva no cadastramento
+### EST-RN03: Validação das quantidades no cadastramento.
 
-- **Regra:** total_copies deve ser maior que zero, e available_copies deve ser maior ou igual a zero.
-- **Resultado esperado:** A API deve rejeitar o cadastro quando total_copies for menor ou igual a zero, quando available_copies for negativo ou quando available_copies for maior que total_copies, retornando HTTP 400 Bad Request.
+- **Regra:** total_copies e available_copies devem aceitar somente valores numéricos inteiros. total_copies deve ser maior que zero, e available_copies deve ser maior ou igual a zero.
+- **Resultado esperado:** A API deve rejeitar o cadastro quando total_copies ou available_copies receberem valores decimais ou textuais, quando total_copies for menor ou igual a zero ou quando available_copies for negativo, retornando HTTP 400 Bad Request.
 - **Endpoint:** POST /library-books.
 - **Origem:** Decisão.
 - **Situação:** Confirmada.
 - **Prioridade:** Alta.
 - **Técnica sugerida:** Partição de equivalência.
 
-### EST-RN04: Quantidade positiva na atualização
+### EST-RN04: Validação das quantidades na atualização.
 
-- **Regra:** total_copies deve ser maior que zero, e available_copies deve ser maior ou igual a zero.
-- **Resultado esperado:** A API deve rejeitar a atualização quando total_copies for menor ou igual a zero, quando available_copies for negativo ou quando available_copies for maior que total_copies, retornando HTTP 400 Bad Request.
+- **Regra:** total_copies e available_copies devem aceitar somente valores numéricos inteiros. total_copies deve ser maior que zero, e available_copies deve ser maior ou igual a zero.
+- **Resultado esperado:** A API deve rejeitar a atualização quando total_copies ou available_copies receberem valores decimais ou textuais, quando total_copies for menor ou igual a zero ou quando available_copies for negativo, retornando HTTP 400 Bad Request.
 - **Endpoint:** PUT /library-books/:library_id/:book_id.
 - **Origem:** Decisão.
 - **Situação:** Confirmada.
@@ -357,7 +357,7 @@
 ### EST-RN05: Limite de disponibilidade
 
 - **Regra:** available_copies não pode exceder total_copies cadastrados.
-- **Resultado esperado:** 400 Bad Request.
+- **Resultado esperado:** A API deve rejeitar o cadastro ou a atualização quando available_copies for maior que total_copies, retornando HTTP 400 Bad Request.
 - **Endpoint:** POST /library-books, PUT /library-books/:library_id/:book_id.
 - **Origem:** Decisão.
 - **Situação:** Confirmada.
@@ -388,7 +388,7 @@
 
 - **Regra:** Os endpoints que recebem os identificadores de uma biblioteca e de um livro pela URL devem validar seus formatos. Caso qualquer um dos identificadores não corresponda ao formato numérico esperado, a API deve rejeitar a requisição, sem realizar a consulta, atualização ou exclusão da associação.
 - **Resultado esperado:** A API deve retornar HTTP 400 Bad Request quando library_id ou book_id apresentar formato inválido. Identificadores em formato válido, mas sem registro ou associação correspondente, devem continuar retornando HTTP 404 Not Found.
-- **Endpoint:** GET /library-books/:library_id/:book_id, PUT /library-books/:library_id/:book_id e DELETE /library-books/:library_id/:book_id.
+- **Endpoint:** PUT /library-books/:library_id/:book_id e DELETE /library-books/:library_id/:book_id.
 - **Origem:** Decisão
 - **Situação:** Confirmada.
 - **Prioridade:** Média.
@@ -398,8 +398,12 @@
 
 ### PAG-RN01: Valores padrão da paginação
 
-- **Regra:** Quando os parâmetros page e limit não forem informados, a API deverá utilizar os valores padrão page=1 e limit=20.
-- **Resultado esperado:** A listagem deverá retornar os primeiros 20 registros, respeitando a ordenação padrão do recurso: name ASC para autores, title ASC para livros e local ASC para bibliotecas. Em caso de valores iguais no campo principal de ordenação, deverá ser utilizado id ASC como critério secundário.
+- **Regra:** Os parâmetros page e limit são opcionais. Quando não forem informados, seus valores padrão serão aplicados individualmente: page = 1 e limit = 20.
+- **Resultado esperado:**
+- Sem os dois parâmetros: retornar a primeira página com até 20 registros.
+- Somente page informado: utilizar o valor recebido e limit = 20.
+- Somente limit informado: utilizar page = 1 e o valor recebido.
+- Ambos informados: utilizar os valores recebidos.
 - **Endpoint:** GET /authors, GET /books e GET /libraries.
 - **Origem:** Decisão.
 - **Situação:** Confirmada.
@@ -428,11 +432,11 @@
 
 ### PAG-RN04: Filtros de pesquisa textual
 
-- **Regra:** Os filtros textuais devem realizar buscas parciais e desconsiderar diferenças entre letras maiúsculas e minúsculas. Os campos que aceitam filtros textuais são:
+- **Regra:** Os filtros textuais devem realizar buscas parciais, desconsiderando diferenças entre letras maiúsculas e minúsculas e entre letras acentuadas e não acentuadas. Os campos que aceitam filtros textuais são:
 - Autores: name e nationality.
 - Livros: title e genre.
 - Bibliotecas: local.
-- **Resultado esperado:** A API deve retornar os registros que contenham o valor informado no respectivo campo, independentemente de diferenças entre letras maiúsculas e minúsculas.
+- **Resultado esperado:** A API deve retornar os registros que contenham o valor informado no respectivo campo, independentemente de diferenças de capitalização ou acentuação.
 - **Endpoint:** GET /authors, GET /books e GET /libraries.
 - **Origem:** Decisão.
 - **Situação:** Confirmada.
@@ -441,7 +445,7 @@
 
 ### PAG-RN05: Filtros de pesquisa numérica
 
-- **Regra:** Os campos numéricos disponíveis na listagem deverão permitir pesquisas por correspondência exata.
+- **Regra:** O campo publication_year, na listagem de livros, deverá permitir pesquisas por correspondência exata.
 - **Resultado esperado:** Ao informar um ano de publicação, a API deverá retornar somente os livros cujo campo publication_year corresponda exatamente ao valor pesquisado.
 - **Endpoint:** GET /books.
 - **Origem:** Decisão.
@@ -457,6 +461,7 @@
 - Libraries: local.
   O parâmetro sortBy define o campo utilizado na ordenação, enquanto order define a direção, aceitando ASC (crescente) ou DESC (decrescente).
 - **Resultado esperado:** A API deve retornar os registros ordenados conforme os parâmetros informados.
+- **Critério de desempate:** Quando dois ou mais registros apresentarem o mesmo valor no campo utilizado para ordenação, a API deverá utilizar id ASC como critério secundário.
 - **Endpoint:** GET /authors, GET /books e GET /libraries.
 - **Origem:** Decisão.
 - **Situação:** Confirmada.
@@ -523,3 +528,14 @@
 **Comportamento proposto:** Disponibilizar o parâmetro nationality em GET /books, utilizando a associação entre livros e autores para filtrar os resultados.
 **Situação atual:** Não implementado.
 **Observação:** A funcionalidade não faz parte do escopo atual da API e não constitui uma regra de negócio confirmada.
+
+## Pendências de implementação
+
+### PEN-RN01: Ordenação dinâmica da listagem
+
+**Descrição:** Implementar a ordenação dinâmica dos registros nas listagens de autores, livros e bibliotecas, conforme definido nas regras de paginação.
+**Parâmetros:** sortBy, responsável por selecionar o campo de ordenação, e order, responsável por definir a direção da ordenação (ASC ou DESC).
+**Módulos afetados:** Autores, Livros e Bibliotecas.
+**Referências:** Regras de paginação RN06 e RN07.
+**Situação atual:** Não implementado.
+**Observação:** A ausência dessa funcionalidade representa uma lacuna entre o comportamento documentado e a implementação atual da API. Os casos de teste correspondentes deverão ser executados após sua implementação.
